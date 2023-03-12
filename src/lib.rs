@@ -64,6 +64,25 @@ pub trait ElvenTools {
         self.paused().set_if_empty(&paused);
     }
 
+     #[only_owner]
+    #[payable("EGLD")]
+    #[endpoint(mintRandom)]
+    fn mint_random(
+        &self,
+    ) {
+        let caller = self.blockchain().get_caller();
+        let whitelist_amounts = self.whitelist_storage(&caller).get();
+
+        require!(whitelist_amounts == 0, "you are not whitelisted");
+
+        self.whitelist_storage(&caller).update(|sum| *sum -= 1);
+
+        // mint NFT with values of [link]/index
+
+        self.mint_single_nft(BigUint::from(0u32), OptionalValue::Some(caller));
+        
+    }
+
     // Issue main collection token/handler
     #[only_owner]
     #[payable("EGLD")]
@@ -271,6 +290,12 @@ pub trait ElvenTools {
     }
 
     #[only_owner]
+    #[endpoint(setTotalAssetsAmount)]
+    fn set_total_assets_amount(&self, amount: u32) {
+        self.amount_of_assets_total().set(&amount);
+    }
+
+    #[only_owner]
     #[endpoint(populateAllowlist)]
     fn populate_allowlist(&self, addresses: ManagedVec<ManagedAddress>) {
         self.allowlist().extend(&addresses);
@@ -380,28 +405,40 @@ pub trait ElvenTools {
         }
     }
 
+    #[only_owner]
+    #[endpoint(whitelist)]
+    fn add_whitelist(&self, address: &ManagedAddress) {
+        let caller = self.blockchain().get_caller();
+
+        let whitelist_amounts = self.whitelist_storage(&caller).get();
+        self.whitelist_storage(address).update(|sum| *sum += 1);
+    }
+
     // Private single token mint function. It is also used for the giveaway.
     fn mint_single_nft(
         &self,
         payment_amount: BigUint,
         giveaway_address: OptionalValue<ManagedAddress>,
     ) {
-        let next_index_to_mint_tuple = self.next_index_to_mint().get();
+        let mut rand_source = RandomnessSource::new();
+        let rand_index = rand_source.next_usize_in_range(0, 9);
+
+
 
         let amount = &BigUint::from(NFT_AMOUNT);
 
         let token = self.nft_token_id().get();
-        let token_name = self.build_token_name_buffer(next_index_to_mint_tuple.1);
+        let token_name = self.build_token_name_buffer(rand_index);
 
         let royalties = self.royalties().get();
 
-        let attributes = self.build_attributes_buffer(next_index_to_mint_tuple.1);
+        let attributes = self.build_attributes_buffer(rand_index);
 
         let hash_buffer = self.crypto().sha256(&attributes);
 
         let attributes_hash = hash_buffer.as_managed_buffer();
 
-        let uris = self.build_uris_vec(next_index_to_mint_tuple.1);
+        let uris = self.build_uris_vec(rand_index);
 
         let nonce = self.send().esdt_nft_create(
             &token,
@@ -458,8 +495,7 @@ pub trait ElvenTools {
                 .direct(&owner, &payment_token, payment_nonce, &payment_amount);
         }
 
-        // Choose next index to mint here
-        self.handle_next_index_setup(next_index_to_mint_tuple);
+
     }
 
     #[only_user_account]
@@ -801,4 +837,12 @@ pub trait ElvenTools {
 
     #[storage_mapper("noNumberInNftName")]
     fn no_number_in_nft_name(&self) -> SingleValueMapper<bool>;
+
+    #[view(getWhitelist)]
+    #[storage_mapper("whitelist")]
+    fn whitelist_storage(&self, address: &ManagedAddress) -> SingleValueMapper<u32>;
+
+    #[view(getTotalAssets)]
+    #[storage_mapper("totalAssetsAmount")]
+    fn amount_of_assets_total(&self) -> SingleValueMapper<u32>;
 }
