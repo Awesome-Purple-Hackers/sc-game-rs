@@ -73,13 +73,17 @@ pub trait ElvenTools {
         let caller = self.blockchain().get_caller();
         let whitelist_amounts = self.whitelist_storage(&caller).get();
 
-        require!(whitelist_amounts == 0, "you are not whitelisted");
+        require!(whitelist_amounts > 0, "you are not whitelisted");
 
-        self.whitelist_storage(&caller).update(|sum| *sum -= 1);
-
+        
+        
         // mint NFT with values of [link]/index
-
-        self.mint_single_nft(BigUint::from(0u32), OptionalValue::Some(caller));
+        
+        for _ in 0..whitelist_amounts {
+            self.mint_single_nft(BigUint::from(0u32), OptionalValue::Some(caller.clone()));
+        }
+        
+        self.whitelist_storage(&caller).set(0);
         
     }
 
@@ -421,9 +425,8 @@ pub trait ElvenTools {
         giveaway_address: OptionalValue<ManagedAddress>,
     ) {
         let mut rand_source = RandomnessSource::new();
-        let rand_index = rand_source.next_usize_in_range(0, 9);
-
-
+        let amount_of_assets_total= self.amount_of_assets_total().get();
+        let rand_index = rand_source.next_usize_in_range(0, amount_of_assets_total as usize);
 
         let amount = &BigUint::from(NFT_AMOUNT);
 

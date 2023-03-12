@@ -4,7 +4,7 @@ CHAIN_ID="D"
 # WALLET="./wallets/test-wallet2.pem"
 WALLET="~/hackathon.pem"
 
-MY_ADDRESS=erd1epacy29dkrkqaeju3k59z45rdq5c9a2dv4qs0t0992d32prx623slv5fq5
+MY_ADDRESS=erd1man0h5zzj2ta8xju3vt4keqe5qdel95qe4k93dv4arzyfrkjj8dqj6yynt
 MY_ADDRESS_HEX="$(erdpy wallet bech32 --decode ${MY_ADDRESS})"
 
 #######################################################
@@ -12,14 +12,14 @@ ADDRESS=$(erdpy data load --key=address-devnet)
 # ADDRESS=$(erdpy data load --key=address-devnet-2)
 #######################################################
 
-COLLECTION_NAME="LandboardTiles"
+COLLECTION_NAME="WQITEMS"
 COLLECTION_NAME_HEX="0x$(echo -n ${COLLECTION_NAME} | xxd -p -u | tr -d '\n')"
-COLLECTION_TIKER="TILE"
+COLLECTION_TIKER="WQITEMS"
 COLLECTION_TIKER_HEX="0x$(echo -n ${COLLECTION_TIKER} | xxd -p -u | tr -d '\n')"
 
 TOTAL_NUMBER_OF_NFTS=500
 
-CID="QmXkmecvzn5cmVVJ4Lw52y2sYYzgiKWAgPT15jfzNBXeHH"
+CID="QmU28G8PJ31wEf9AtFCKjSKtVF3ptqREn6Jf6UeEJGH73X"
 CID_HEX="0x$(echo -n ${CID} | xxd -p -u | tr -d '\n')"
 
 MINT_EGLD_VALUE=1000000000000000000 # 1 EGLD
@@ -45,7 +45,7 @@ AMOUNT_OF_TOKENS=10000
 TOKENS_LIMIT_PER_ADDRESS=10000
 ROYALTIES=0
 SELLING_PRICE=0
-FILE_EXTENSION="png"
+FILE_EXTENSION=".png"
 FILE_EXTENSION_HEX="0x$(echo -n ${FILE_EXTENSION} | xxd -p -u | tr -d '\n')"
 
 PAYMENT_TOKEN_ID="LKLAND-516da7"
@@ -99,11 +99,25 @@ whitelist() {
         --arguments=0x${MY_ADDRESS_HEX}
 }
 
+changeBaseCids() {
+    erdpy --verbose contract call ${ADDRESS} --send --proxy=${PROXY} --chain=${CHAIN_ID} --recall-nonce --pem=${WALLET} \
+        --gas-limit=100000000 \
+        --function="changeBaseCids" \
+        --arguments ${CID_HEX} ${CID_HEX}
+}
+
 setRefPercent() {
     erdpy --verbose contract call ${ADDRESS} --send --proxy=${PROXY} --chain=${CHAIN_ID} --recall-nonce --pem=${WALLET} \
         --gas-limit=100000000 \
         --function="setRefPercent" \
         --arguments ${REF_PERCENT}
+}
+
+setTotalAssetsAmount() {
+    erdpy --verbose contract call ${ADDRESS} --send --proxy=${PROXY} --chain=${CHAIN_ID} --recall-nonce --pem=${WALLET} \
+        --gas-limit=100000000 \
+        --function="setTotalAssetsAmount" \
+        --arguments 0x01
 }
 
 setDiscountPercent() {
